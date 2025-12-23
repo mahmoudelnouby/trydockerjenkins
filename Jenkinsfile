@@ -38,6 +38,12 @@ pipeline {
 
     // Will be set in Detect stage: 'podman' or 'docker'
     CONTAINER_CLI = ''
+
+    // ===== Podman Remote (Option C) =====
+    // If Jenkins runs in a container, it usually talks to Podman Machine via TCP.
+    // Example: tcp://host.containers.internal:8081
+    // You can set this in the Jenkins job or Jenkins container env.
+    CONTAINER_HOST = "${env.CONTAINER_HOST ?: ''}"
   }
 
   stages {
@@ -49,15 +55,28 @@ pipeline {
       steps {
         script {
           def cli = sh(script: '''
-            if command -v podman >/dev/null 2>&1; then echo podman;
-            elif command -v docker >/dev/null 2>&1; then echo docker;
-            else echo none; fi
+            if command -v podman >/dev/null 2>&1; then echo podman; else echo none; fi
           ''', returnStdout: true).trim()
+
           if (cli == 'none') {
-            error "Neither podman nor docker found in PATH. Ensure the CLI is installed, or map the host socket."
+            error "Podman not found in PATH. Install podman client in the Jenkins environment (controller/agent)."
           }
-          env.CONTAINER_CLI = cli
-          echo "Using container CLI: ${env.CONTAINER_CLI}"
+
+          env.CONTAINER_CLI = 'podman'
+
+          // If a remote socket is provided, validate it works.
+          if (env.CONTAINER_HOST?.trim()) {
+            echo "Using remote Podman socket: ${env.CONTAINER_HOST}"
+            sh '''
+              set -eux
+              export CONTAINER_HOST="${CONTAINER_HOST}"
+              podman version
+              podman info >/dev/null
+            '''
+          } else {
+            // Local podman in the same container/VM
+            sh 'podman version'
+          }
         }
       }
     }
@@ -91,6 +110,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
+            export CONTAINER_HOST="${CONTAINER_HOST}"
             ${CONTAINER_CLI} run --rm \
               -v "${WORKSPACE}:/usr/app" -w /usr/app \
               maven:3.8.8-eclipse-temurin-17 \
@@ -114,6 +134,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
+            export CONTAINER_HOST="${CONTAINER_HOST}"
             ${CONTAINER_CLI} run --rm \
               -v "${WORKSPACE}:/usr/app" -w /usr/app \
               maven:3.8.8-eclipse-temurin-17 \
@@ -133,6 +154,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
+            export CONTAINER_HOST="${CONTAINER_HOST}"
             ${CONTAINER_CLI} run --rm \
               -v "${WORKSPACE}:/usr/app" -w /usr/app \
               maven:3.8.8-eclipse-temurin-17 \
@@ -149,6 +171,7 @@ pipeline {
       steps {
         sh '''
           set -eux
+          export CONTAINER_HOST="${CONTAINER_HOST}"
           ${CONTAINER_CLI} build --pull -t ${IMAGE_NAME}:${IMAGE_TAG} .
         '''
       }
@@ -162,13 +185,12 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
-            # Build the specific build stage image (FROM maven ... AS build)
+            export CONTAINER_HOST="${CONTAINER_HOST}"
+
             ${CONTAINER_CLI} build --target build -t ${IMAGE_NAME}-build:${IMAGE_TAG} .
 
             CID=$(${CONTAINER_CLI} create ${IMAGE_NAME}-build:${IMAGE_TAG})
             mkdir -p target
-
-            # Copy JAR from /usr/app/target to workspace, normalize name
             ${CONTAINER_CLI} cp $CID:/usr/app/target/. ./target/ || true
             ${CONTAINER_CLI} rm $CID
 
@@ -277,11 +299,13 @@ pipeline {
       steps {
         sh '''
           set -eux
+          export CONTAINER_HOST="${CONTAINER_HOST}"
+
           IMAGE_REF="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
           LATEST_REF="${REGISTRY}/${IMAGE_NAME}:latest"
 
           TLS_FLAG=""
-          if [ "${CONTAINER_CLI}" = "podman" ] && [ "${INSECURE_REGISTRY}" = "true" ]; then
+          if [ "${INSECURE_REGISTRY}" = "true" ]; then
             TLS_FLAG="--tls-verify=false"
           fi
 
