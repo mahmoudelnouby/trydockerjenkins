@@ -54,12 +54,21 @@ pipeline {
     stage('Detect Container CLI') {
       steps {
         script {
+          // Show some diagnostics to avoid confusing PATH vs remote-connection failures.
+          sh '''
+            set +e
+            echo "PATH=$PATH"
+            command -v podman >/dev/null 2>&1 && echo "podman=$(command -v podman)" || echo "podman not in PATH"
+            podman --version >/dev/null 2>&1 && podman --version || true
+            set -e
+          '''
+
           def cli = sh(script: '''
             if command -v podman >/dev/null 2>&1; then echo podman; else echo none; fi
           ''', returnStdout: true).trim()
 
           if (cli == 'none') {
-            error "Podman not found in PATH. Install podman client in the Jenkins environment (controller/agent)."
+            error "Podman client is not installed in the Jenkins runtime. Ensure the Jenkins container/agent image includes podman (e.g. /usr/bin/podman)."
           }
 
           env.CONTAINER_CLI = 'podman'
@@ -67,15 +76,26 @@ pipeline {
           // If a remote socket is provided, validate it works.
           if (env.CONTAINER_HOST?.trim()) {
             echo "Using remote Podman socket: ${env.CONTAINER_HOST}"
-            sh '''
-              set -eux
+            // podman uses CONTAINER_HOST to talk to the remote service
+            def rc = sh(script: '''
+              set +e
               export CONTAINER_HOST="${CONTAINER_HOST}"
-              podman version
-              podman info >/dev/null
-            '''
+              podman info >/dev/null 2>&1
+              echo $?
+            ''', returnStdout: true).trim()
+
+            if (rc != '0') {
+              sh '''
+                set +e
+                export CONTAINER_HOST="${CONTAINER_HOST}"
+                echo "podman info failed; details:" >&2
+                podman info >&2
+                set -e
+              '''
+              error "Podman client is installed, but cannot reach remote Podman API at CONTAINER_HOST='${env.CONTAINER_HOST}'. Start/expose the Podman API service or set CONTAINER_HOST to a working endpoint."
+            }
           } else {
-            // Local podman in the same container/VM
-            sh 'podman version'
+            sh 'podman info >/dev/null'
           }
         }
       }
@@ -110,11 +130,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
-            export CONTAINER_HOST="${CONTAINER_HOST}"
-            ${CONTAINER_CLI} run --rm \
-              -v "${WORKSPACE}:/usr/app" -w /usr/app \
-              maven:3.8.8-eclipse-temurin-17 \
-              mvn -B -ntp verify
+            ./mvnw -B -ntp verify
           '''
         }
       }
@@ -134,11 +150,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
-            export CONTAINER_HOST="${CONTAINER_HOST}"
-            ${CONTAINER_CLI} run --rm \
-              -v "${WORKSPACE}:/usr/app" -w /usr/app \
-              maven:3.8.8-eclipse-temurin-17 \
-              mvn -B -ntp checkstyle:checkstyle
+            ./mvnw -B -ntp checkstyle:checkstyle
           '''
         }
 
@@ -154,11 +166,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
-            export CONTAINER_HOST="${CONTAINER_HOST}"
-            ${CONTAINER_CLI} run --rm \
-              -v "${WORKSPACE}:/usr/app" -w /usr/app \
-              maven:3.8.8-eclipse-temurin-17 \
-              mvn -B -ntp checkstyle:check
+            ./mvnw -B -ntp checkstyle:check
           '''
         }
       }
