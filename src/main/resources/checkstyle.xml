@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+
+    <module name="TreeWalker">
+        <!-- Ensure file name matches public type name -->
+        <module name="OuterTypeFilename"/>
+
+        <!-- One top-level class or interface per file -->
+        <module name="OneTopLevelClass"/>
+
+        <!-- ===== Package naming: lowercase reverse-domain style ===== -->
+        <module name="PackageName">
+            <!-- e.g. com.dxc.ms_template.something -->
+            <property name="format" value="^[a-z_]+(\.[a-z_]+)*$"/>
+        </module>
+        <!-- ===== Type / class / interface / enum names: PascalCase ===== -->
+        <module name="TypeName">
+            <!-- First char uppercase, then letters or digits -->
+            <property name="format" value="^[A-Z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- Type parameters like T, E, K, V, etc. (optional but common) -->
+        <module name="ClassTypeParameterName">
+            <property name="format" value="^[A-Z][A-Za-z0-9]*$"/>
+        </module>
+        <module name="InterfaceTypeParameterName">
+            <property name="format" value="^[A-Z][A-Za-z0-9]*$"/>
+        </module>
+
+        <!-- ===== Method names: camelCase ===== -->
+        <module name="MethodName">
+            <!-- cannot ensure "starts with verb" by regex; enforce camelCase -->
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+            <!-- allow JUnit-style setUp/tearDown, etc., if needed -->
+            <property name="allowClassName" value="false"/>
+        </module>
+
+        <!-- ===== Field / variable / parameter names: camelCase ===== -->
+        <!-- Instance and static non-final fields -->
+        <module name="MemberName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- Local variables -->
+        <module name="LocalVariableName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- Method/constructor parameters -->
+        <module name="ParameterName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+
+        <!-- ===== Constants: UPPER_CASE_WITH_UNDERSCORES ===== -->
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9_]*$"/>
+        </module>
+
+
+        <!-- Optional: enforce enums are PascalCase (already via TypeName) -->
+        <!-- No extra module needed, TypeName covers enum types -->
+
+    </module>
+</module>
