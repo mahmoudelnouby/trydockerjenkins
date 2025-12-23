@@ -43,7 +43,7 @@ pipeline {
     // If Jenkins runs in a container, it usually talks to Podman Machine via TCP.
     // Example: tcp://host.containers.internal:8081
     // You can set this in the Jenkins job or Jenkins container env.
-    CONTAINER_HOST = "${env.CONTAINER_HOST ?: ''}"
+    CONTAINER_HOST = "${env.CONTAINER_HOST ?: 'ssh://root@127.0.0.1:49223/run/podman/podman.sock'}"
   }
 
   stages {
