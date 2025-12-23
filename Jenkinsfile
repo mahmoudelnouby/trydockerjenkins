@@ -317,3 +317,8 @@ pipeline {
   }
 
   post {
+    always { cleanWs() }
+    success { echo "Build ${IMAGE_TAG}: tests/Checkstyle passed, JAR uploaded to Artifactory, image pushed to ${REGISTRY}." }
+    failure { echo "Build failed — check logs." }
+  }
+}
