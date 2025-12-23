@@ -7,6 +7,7 @@ pipeline {
   options {
     timestamps()
     ansiColor('xterm')
+    skipDefaultCheckout(true)
   }
 
   environment {
@@ -66,7 +67,11 @@ pipeline {
     // Checkout
     // ---------------------------------------------------------------------
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+           deleteDir()
+           checkout(scm)
+           sh 'git rev-parse --is-inside-work-tree'
+      }
     }
 
     // ---------------------------------------------------------------------
