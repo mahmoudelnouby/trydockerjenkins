@@ -45,7 +45,7 @@ pipeline {
     // You can set this in the Jenkins job or Jenkins container env.
     // Default to the Podman Machine root connection via the podman network gateway.
     // (gateway from `podman network inspect newfolder_default` is 10.89.1.1)
-    CONTAINER_HOST = "${env.CONTAINER_HOST ?: 'ssh://root@10.89.1.1:49223/run/podman/podman.sock'}"
+    CONTAINER_HOST = "${env.CONTAINER_HOST ?: ''}"
   }
 
   stages {
@@ -62,6 +62,7 @@ pipeline {
             echo "PATH=$PATH"
             command -v podman >/dev/null 2>&1 && echo "podman=$(command -v podman)" || echo "podman not in PATH"
             podman --version >/dev/null 2>&1 && podman --version || true
+            echo "CONTAINER_HOST=${CONTAINER_HOST}"
             set -e
           '''
 
@@ -75,30 +76,8 @@ pipeline {
 
           env.CONTAINER_CLI = 'podman'
 
-          // If a remote socket is provided, validate it works.
-          if (env.CONTAINER_HOST?.trim()) {
-            echo "Using remote Podman socket: ${env.CONTAINER_HOST}"
-            // podman uses CONTAINER_HOST to talk to the remote service
-            def rc = sh(script: '''
-              set +e
-              export CONTAINER_HOST="${CONTAINER_HOST}"
-              podman info >/dev/null 2>&1
-              echo $?
-            ''', returnStdout: true).trim()
-
-            if (rc != '0') {
-              sh '''
-                set +e
-                export CONTAINER_HOST="${CONTAINER_HOST}"
-                echo "podman info failed; details:" >&2
-                podman info >&2
-                set -e
-              '''
-              error "Podman client is installed, but cannot reach remote Podman API at CONTAINER_HOST='${env.CONTAINER_HOST}'. Start/expose the Podman API service or set CONTAINER_HOST to a working endpoint."
-            }
-          } else {
-            sh 'podman info >/dev/null'
-          }
+          // Local/default connection check (do not force CONTAINER_HOST)
+          sh 'podman info >/dev/null'
         }
       }
     }
@@ -181,7 +160,6 @@ pipeline {
       steps {
         sh '''
           set -eux
-          export CONTAINER_HOST="${CONTAINER_HOST}"
           ${CONTAINER_CLI} build --pull -t ${IMAGE_NAME}:${IMAGE_TAG} .
         '''
       }
@@ -195,7 +173,6 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
-            export CONTAINER_HOST="${CONTAINER_HOST}"
 
             ${CONTAINER_CLI} build --target build -t ${IMAGE_NAME}-build:${IMAGE_TAG} .
 
@@ -309,7 +286,6 @@ pipeline {
       steps {
         sh '''
           set -eux
-          export CONTAINER_HOST="${CONTAINER_HOST}"
 
           IMAGE_REF="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
           LATEST_REF="${REGISTRY}/${IMAGE_NAME}:latest"
