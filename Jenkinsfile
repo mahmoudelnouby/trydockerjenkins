@@ -1,4 +1,3 @@
-
 // Jenkinsfile: Podman/Docker local registry + tests + checkstyle + JFrog
 
 pipeline {
@@ -68,9 +67,17 @@ pipeline {
     // ---------------------------------------------------------------------
     stage('Checkout') {
       steps {
-           deleteDir()
-           checkout(scm)
-           sh 'git rev-parse --is-inside-work-tree'
+        // Force a stable workspace path so later container bind-mounts
+        // always point at the same checked-out directory.
+        ws("${env.WORKSPACE}") {
+          deleteDir()
+          checkout(scm)
+          sh '''
+            set -eux
+            test -d .git
+            git rev-parse --is-inside-work-tree
+          '''
+        }
       }
     }
 
@@ -80,18 +87,19 @@ pipeline {
     stage('Unit Tests') {
       steps {
         // Run tests in a Maven container so Jenkins host doesn’t need Maven.
-        // Uses the workspace via a bind mount.
-        sh '''
-          set -eux
-          ${CONTAINER_CLI} run --rm \
-            -v "$PWD":/usr/app -w /usr/app \
-            maven:3.8.8-eclipse-temurin-17 \
-            mvn -B -ntp verify
-        '''
+        // Use Jenkins' WORKSPACE instead of $PWD to avoid path drift.
+        ws("${env.WORKSPACE}") {
+          sh '''
+            set -eux
+            ${CONTAINER_CLI} run --rm \
+              -v "${WORKSPACE}:/usr/app" -w /usr/app \
+              maven:3.8.8-eclipse-temurin-17 \
+              mvn -B -ntp verify
+          '''
+        }
       }
       post {
         always {
-          // Publish JUnit test results and archive target outputs for reference
           junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
           archiveArtifacts artifacts: 'target/**', fingerprint: true
         }
@@ -103,14 +111,16 @@ pipeline {
     // ---------------------------------------------------------------------
     stage('Checkstyle') {
       steps {
-        // Generate report
-        sh '''
-          set -eux
-          ${CONTAINER_CLI} run --rm \
-            -v "$PWD":/usr/app -w /usr/app \
-            maven:3.8.8-eclipse-temurin-17 \
-            mvn -B -ntp checkstyle:checkstyle
-        '''
+        ws("${env.WORKSPACE}") {
+          sh '''
+            set -eux
+            ${CONTAINER_CLI} run --rm \
+              -v "${WORKSPACE}:/usr/app" -w /usr/app \
+              maven:3.8.8-eclipse-temurin-17 \
+              mvn -B -ntp checkstyle:checkstyle
+          '''
+        }
+
         publishHTML([
           reportName: 'Checkstyle',
           reportDir: 'target/site',
@@ -119,14 +129,16 @@ pipeline {
           alwaysLinkToLastBuild: true,
           allowMissing: true
         ])
-        // Enforce violations
-        sh '''
-          set -eux
-          ${CONTAINER_CLI} run --rm \
-            -v "$PWD":/usr/app -w /usr/app \
-            maven:3.8.8-eclipse-temurin-17 \
-            mvn -B -ntp checkstyle:check
-        '''
+
+        ws("${env.WORKSPACE}") {
+          sh '''
+            set -eux
+            ${CONTAINER_CLI} run --rm \
+              -v "${WORKSPACE}:/usr/app" -w /usr/app \
+              maven:3.8.8-eclipse-temurin-17 \
+              mvn -B -ntp checkstyle:check
+          '''
+        }
       }
     }
 
@@ -147,25 +159,28 @@ pipeline {
     // ---------------------------------------------------------------------
     stage('Extract JAR from Image') {
       steps {
-        sh '''
-          set -eux
-          # Build the specific build stage image (FROM maven ... AS build)
-          ${CONTAINER_CLI} build --target build -t ${IMAGE_NAME}-build:${IMAGE_TAG} .
+        ws("${env.WORKSPACE}") {
+          sh '''
+            set -eux
+            # Build the specific build stage image (FROM maven ... AS build)
+            ${CONTAINER_CLI} build --target build -t ${IMAGE_NAME}-build:${IMAGE_TAG} .
 
-          CID=$(${CONTAINER_CLI} create ${IMAGE_NAME}-build:${IMAGE_TAG})
-          mkdir -p target
+            CID=$(${CONTAINER_CLI} create ${IMAGE_NAME}-build:${IMAGE_TAG})
+            mkdir -p target
 
-          # Copy JAR from /usr/app/target to workspace, normalize name
-          ${CONTAINER_CLI} cp $CID:/usr/app/target/. ./target/ || true
-          ${CONTAINER_CLI} rm $CID
+            # Copy JAR from /usr/app/target to workspace, normalize name
+            ${CONTAINER_CLI} cp $CID:/usr/app/target/. ./target/ || true
+            ${CONTAINER_CLI} rm $CID
 
-          MAIN_JAR=$(ls -1 target/*.jar | head -n1 || true)
-          if [ -n "$MAIN_JAR" ]; then cp "$MAIN_JAR" ${APP_JAR}; fi
-        '''
+            MAIN_JAR=$(ls -1 target/*.jar | head -n1 || true)
+            if [ -n "$MAIN_JAR" ]; then cp "$MAIN_JAR" "${APP_JAR}"; fi
+          '''
+        }
       }
       post {
         always {
-          archiveArtifacts artifacts: 'target/*.jar, ' + "${APP_JAR}", fingerprint: true
+          // Archive both the built JAR(s) and the normalized APP_JAR.
+          archiveArtifacts artifacts: 'target/*.jar,ms-template.jar', fingerprint: true
         }
       }
     }
