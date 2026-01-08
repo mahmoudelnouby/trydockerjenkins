@@ -18,3 +18,5 @@
 2025-12-23 10:32:34 INFO  [corr=] [app.company_id=] [app.mds.node_id=] [app.user.id"=] [http-nio-8080-exec-1] org.springframework.web.servlet.DispatcherServlet - Completed initialization in 3 ms
 2025-12-23 10:32:34 INFO  [corr=7c605c9a-14e4-4356-856f-044e99bd9e88] [app.company_id=] [app.mds.node_id=] [app.user.id"=] [http-nio-8080-exec-1] com.dxc.ms_template.aspect.LoggingAspect - Entering: HelloController.hello()
 2025-12-23 10:32:34 INFO  [corr=7c605c9a-14e4-4356-856f-044e99bd9e88] [app.company_id=] [app.mds.node_id=] [app.user.id"=] [http-nio-8080-exec-1] com.dxc.ms_template.aspect.LoggingAspect - Exiting: HelloController.hello() (1 ms)
+2025-12-23 14:01:50 INFO  [corr=] [app.company_id=] [app.mds.node_id=] [app.user.id"=] [SpringApplicationShutdownHook] org.springframework.boot.web.embedded.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2025-12-23 14:01:51 INFO  [corr=] [app.company_id=] [app.mds.node_id=] [app.user.id"=] [tomcat-shutdown] org.springframework.boot.web.embedded.tomcat.GracefulShutdown - Graceful shutdown complete

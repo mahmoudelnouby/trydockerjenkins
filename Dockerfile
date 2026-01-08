@@ -24,9 +24,9 @@ ENV APP_DIR=/usr/app
 ENV LOG_DIR=${APP_DIR}/logs
 
 # App configuration overridden via docker-compose using .env file.
-ENV DB_URL=
-ENV DB_USERNAME=
-ENV DB_PASSWORD=
+#ENV DB_URL=
+#ENV DB_USERNAME=
+#ENV DB_PASSWORD=
 ENV LOG_LEVEL=
 ENV JAVA_OPTS=""
 
