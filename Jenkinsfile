@@ -120,15 +120,9 @@ pipeline {
       }
       post {
         always {
-          script {
-                def reports = findFiles(glob: 'target/surefire-reports/*.xml')
-                if (reports && reports.size() > 0) {
-                  junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
-                  archiveArtifacts artifacts: 'target/**', fingerprint: true, allowEmptyArchive: true
-                } else {
-                  echo 'Skipping JUnit publish: no surefire reports found.'
-                }
-              }
+           junit allowEmptyResults: true , testResults: 'target/surefire-reports/*.xml'
+           archiveArtifacts artifacts: 'target/**', fingerprint: true
+
         }
       }
     }
