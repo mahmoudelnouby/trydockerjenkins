@@ -10,7 +10,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 public class ArchitectureTest {
 
     private final JavaClasses importedClasses = new ClassFileImporter()
-            .importPackages("com.dxc.ms_template");
+            .importPackages("com.dxc.demo");
 
     @Test
     void controllers_should_reside_in_controller_package() {

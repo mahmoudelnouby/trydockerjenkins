@@ -120,8 +120,8 @@ pipeline {
       }
       post {
         always {
-           junit allowEmptyResults: true , testResults: 'target/surefire-reports/*.xml'
-           archiveArtifacts artifacts: 'target/**', fingerprint: true
+           junit allowEmptyResults: true , testResults: '**/target/surefire-reports/*.xml'
+           archiveArtifacts artifacts: '**/target/**', fingerprint: true
 
         }
       }
