@@ -111,6 +111,7 @@ pipeline {
         ws("${env.WORKSPACE}") {
           sh '''
             set -eux
+             ls -l ./mvnw
             ./mvnw -B -ntp verify
           '''
         }
