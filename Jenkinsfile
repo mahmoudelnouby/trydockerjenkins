@@ -109,7 +109,7 @@ pipeline {
         // Run tests in a Maven container so Jenkins host doesn’t need Maven.
         // Use Jenkins' WORKSPACE instead of $PWD to avoid path drift.
         ws("${env.WORKSPACE}") {
-            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+          catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
               sh '''
                 set -eux
                 ls -l ./mvnw
@@ -117,16 +117,16 @@ pipeline {
                 ls -l ./mvnw
                 ./mvnw -B -ntp verify
               '''
-            }
+          }
         }
       }
-      post {
-        always {
-           junit allowEmptyResults: true , testResults: '**/target/surefire-reports/*.xml'
-           archiveArtifacts artifacts: '**/target/**', fingerprint: true
-
-        }
-      }
+//       post {
+//         always {
+//            junit allowEmptyResults: true , testResults: '**/target/surefire-reports/*.xml'
+//            archiveArtifacts artifacts: '**/target/**', fingerprint: true
+//
+//         }
+//       }
     }
 
     // ---------------------------------------------------------------------
