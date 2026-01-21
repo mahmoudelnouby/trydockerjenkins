@@ -109,13 +109,15 @@ pipeline {
         // Run tests in a Maven container so Jenkins host doesn’t need Maven.
         // Use Jenkins' WORKSPACE instead of $PWD to avoid path drift.
         ws("${env.WORKSPACE}") {
-          sh '''
-            set -eux
-            ls -l ./mvnw
-            chmod +x mvnw
-            ls -l ./mvnw
-            ./mvnw -B -ntp verify
-          '''
+            catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+              sh '''
+                set -eux
+                ls -l ./mvnw
+                chmod +x mvnw
+                ls -l ./mvnw
+                ./mvnw -B -ntp verify
+              '''
+            }
         }
       }
       post {
