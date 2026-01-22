@@ -37,7 +37,7 @@ pipeline {
     BUILD_NUMBER = "${env.BUILD_NUMBER}"
 
     // Will be set in Detect stage: 'podman' or 'docker'
-    CONTAINER_CLI = ''
+    CONTAINER_CLI = 'podman'
 
     // ===== Podman Remote (Option C) =====
     // If Jenkins runs in a container, it usually talks to Podman Machine via TCP.
