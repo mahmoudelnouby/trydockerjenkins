@@ -167,11 +167,13 @@ pipeline {
     // ---------------------------------------------------------------------
     stage('Build Image') {
       steps {
-        sh '''
-          set -eux
-          ls -la
-          ${CONTAINER_CLI} build --pull -t ${IMAGE_NAME}:${IMAGE_TAG} .
-        '''
+        ws("${env.WORKSPACE}") {
+            sh '''
+              set -eux
+              ls -la
+              ${CONTAINER_CLI} build --pull -t ${IMAGE_NAME}:${IMAGE_TAG} .
+            '''
+        }
       }
     }
 
