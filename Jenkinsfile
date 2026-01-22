@@ -196,14 +196,15 @@ pipeline {
             MAIN_JAR=$(ls -1 target/*.jar | head -n1 || true)
             if [ -n "$MAIN_JAR" ]; then cp "$MAIN_JAR" "${APP_JAR}"; fi
           '''
-        }
-      }
-      post {
-        always {
-          // Archive both the built JAR(s) and the normalized APP_JAR.
           archiveArtifacts artifacts: 'target/*.jar,ms-template.jar', fingerprint: true
         }
       }
+//       post {
+//         always {
+//           // Archive both the built JAR(s) and the normalized APP_JAR.
+//           archiveArtifacts artifacts: 'target/*.jar,ms-template.jar', fingerprint: true
+//         }
+//       }
     }
 
     // ---------------------------------------------------------------------
